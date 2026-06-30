@@ -934,6 +934,59 @@ describe('formState', () => {
 
       expect(await screen.findByText(message)).toBeVisible();
     });
+    it('should only show error after delayError with setValue and shouldValidate', async () => {
+      jest.useFakeTimers();
+
+      const message = 'required.';
+
+      const App = () => {
+        const {
+          register,
+          setValue,
+          formState: { errors },
+        } = useForm<{
+          test: string;
+        }>({
+          delayError: 500,
+          mode: 'onChange',
+        });
+
+        return (
+          <div>
+            <input
+              {...register('test', {
+                maxLength: 4,
+              })}
+            />
+            <button
+              type="button"
+              onClick={() =>
+                setValue('test', '123456', {
+                  shouldValidate: true,
+                })
+              }
+            >
+              update
+            </button>
+            {errors.test && <p>{message}</p>}
+          </div>
+        );
+      };
+
+      render(<App />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'update' }));
+      });
+
+      expect(screen.queryByText(message)).not.toBeInTheDocument();
+
+      act(() => {
+        jest.advanceTimersByTime(500);
+      });
+
+      expect(await screen.findByText(message)).toBeVisible();
+    });
 
     it('should prevent error from showing once input is validated', async () => {
       jest.useFakeTimers();

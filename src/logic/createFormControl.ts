@@ -693,16 +693,32 @@ export function createFormControl<
             }
           }
 
-          !onlyCheckValid &&
-            (get(fieldError, _f.name)
-              ? isFieldArrayRoot
-                ? updateFieldArrayRootError(
-                    _formState.errors,
-                    fieldError,
-                    _f.name,
-                  )
-                : set(_formState.errors, _f.name, fieldError[_f.name])
-              : unset(_formState.errors, _f.name));
+          if (!onlyCheckValid) {
+            const fieldErrorValue = get(fieldError, _f.name);
+
+            if (fieldErrorValue) {
+              if (isFieldArrayRoot) {
+                updateFieldArrayRootError(
+                  _formState.errors,
+                  fieldError,
+                  _f.name,
+                );
+              } else if (_options.delayError && eventType === EVENTS.TRIGGER) {
+                delayErrorCallback = debounce(() =>
+                  updateErrors(_f.name, fieldErrorValue),
+                );
+                delayErrorCallback(_options.delayError);
+              } else {
+                set(_formState.errors, _f.name, fieldErrorValue);
+              }
+            } else {
+              if (_options.delayError && eventType === EVENTS.TRIGGER) {
+                clearTimeout(timer);
+                delayErrorCallback = null;
+              }
+              unset(_formState.errors, _f.name);
+            }
+          }
 
           if (props.shouldUseNativeValidation && fieldError[_f.name]) {
             break;
